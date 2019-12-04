@@ -1,0 +1,153 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <sstream>
+#include <string>
+#include <iostream>
+#include <stdlib.h>
+#include <ctime>
+#include <stdio.h>
+#include <cstdlib>
+#include <sstream>
+#include <vector>
+#include <fstream>
+#include <locale.h>
+using namespace std;
+
+
+//перевод string в char*
+char* strchar(string a)
+{
+	char* chrstr = new char[a.length() + 1];
+	strcpy(chrstr, a.c_str());
+	return chrstr;
+}
+
+//получение гаммы
+void gamma(int n, vector<long>& gam, int key)
+{
+	gam.resize(n);
+	srand(key);
+	for (int i = 0; i < n; i++)
+	{
+		gam[i] = rand() * rand();
+	}
+}
+
+//деление на блоки
+char* moving(char a1, char a2, char a3, char a4)
+{
+	char* b = new char[5];
+	b[0] = ((a1 & 252) >> 2) | ((a4 & 3) << 6);
+	b[1] = ((a2 & 252) >> 2) | ((a1 & 3) << 6);
+	b[2] = ((a3 & 252) >> 2) | ((a2 & 3) << 6);
+	b[3] = ((a4 & 252) >> 2) | ((a3 & 3) << 6);
+	b[4] = 0;
+	return b;
+}
+char* demoving(char a1, char a2, char a3, char a4)
+{
+	char* b = new char[5];
+	b[0] = ((a1 & 63) << 2) | ((a2 & 192) >> 6);
+	b[1] = ((a2 & 63) << 2) | ((a3 & 192) >> 6);
+	b[2] = ((a3 & 63) << 2) | ((a4 & 192) >> 6);
+	b[3] = ((a4 & 63) << 2) | ((a1 & 192) >> 6);
+	b[4] = 0;
+
+	return b;
+}
+//////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+int main()
+{
+	setlocale(LC_ALL, "rus");
+	cout << "Это программа зашифровывает вводимый текст. Введите текст, который следует зашифровать. " << endl;
+
+	vector<long>gam; //гамма
+	string text; //вводимый текст
+	getline(cin, text);
+
+	char* tx = strchar(text); //исходный текст в char *
+	cout << "Введите ключ:";
+	int key;
+	cin >> key;
+	int n;//количество блоков
+	if (strlen(tx) % sizeof(long) == 0) {
+		n = (int)(strlen(tx) / sizeof(long));
+
+	}
+	else {
+		n = (int)(strlen(tx) / sizeof(long)) + 1;
+	}
+
+	gamma(n, gam, key);
+	
+	char *cryp=new char[strlen(tx)];
+
+	for (int i = 0, j = 0; j < n; i += 4, j++)
+	{
+		char gamchar[4];
+		gamchar[0] = (char)((gam[j]& 4278190080) >> 24);
+		gamchar[1] = (char)((gam[j]& 16711680) >> 16);
+		gamchar[2] = (char)((gam[j]& 65280) >> 8);
+		gamchar[3] = (char)(gam[j]&255);
+
+		cryp[i] = gamchar[0] ^ tx[i]; //11111111000000000000000000000000
+		cryp[i + 1] = gamchar[1] ^ tx[i + 1]; //00000000111111110000000000000000
+		cryp[i + 2] = gamchar[2] ^ tx[i + 2];//00000000000000001111111100000000
+		cryp[i + 3] = gamchar[3] ^ tx[i + 3];//00000000000000000000000011111111
+
+		gamchar[0] = gamchar[1] = gamchar[2] = gamchar[3] = 0;
+	}
+
+	char* cryptxt = new char[4 * n + 1];
+	for (int i = 0; i < strlen(cryptxt); i++)
+	{
+		cryptxt[i] = 0;
+	}
+	for (int i = 0; i < strlen(cryptxt); i += 4)
+	{
+		char* k = moving(cryp[i], cryp[i + 1], cryp[i + 2], cryp[i + 3]);
+		cout << k << " ";
+		cryptxt[i] = k[0];
+		cryptxt[i + 1] = k[1];
+		cryptxt[i + 2] = k[2];
+		cryptxt[i + 3] = k[3];
+	}
+	////////////////////////////
+	char* decryp = new char[strlen(cryp)];
+	for (int i = 0; i < strlen(decryp); i++)
+	{
+		decryp[i] = cryptxt[i];
+	}
+
+	for (int i = 0; i < strlen(decryp); i += 4)
+	{
+		char* k = new char[5];
+		k = demoving(decryp[i], decryp[i + 1], decryp[i + 2], decryp[i + 3]);
+		decryp[i] = k[0];
+		decryp[i + 1] = k[1];
+		decryp[i + 2] = k[2];
+		decryp[i + 3] = k[3];
+
+	}
+
+	for (int i = 0, j = 0; j < n; i += 4, j++)
+	{
+		char gamchar[4];
+		gamchar[0] = (char)(gam[j] >> 24);
+		gamchar[1] = (char)(gam[j] >> 16);
+		gamchar[2] = (char)(gam[j] >> 8);
+		gamchar[3] = (char)(gam[j]);
+		decryp[i] = gamchar[0] ^ decryp[i];
+		decryp[i + 1] = gamchar[1] ^ decryp[i + 1];
+		decryp[i + 2] = gamchar[2] ^ decryp[i + 2];
+		decryp[i + 3] = gamchar[3] ^ decryp[i + 3];
+		gamchar[0] = gamchar[1] = gamchar[2] = gamchar[3] = 0;
+
+	}
+
+	for (int i = 0; i < strlen(decryp); i++)
+	{
+		cout << decryp[i];
+	}
+
+}
